@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift Report Generator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f4f4f2; --surface: #fff; --border: #d8d6ce;
+  --text: #1a1a18; --muted: #6b6b66; --input-bg: #f9f9f7;
+  --mid: #ebebea; --sans: 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Courier New', monospace; --radius: 10px;
+}
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding: 1.25rem 1rem; }
+.page-title { font-size: 13px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; max-width: 960px; margin-left: auto; margin-right: auto; }
+.wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; max-width: 960px; margin: 0 auto; }
+@media(max-width:680px){ .wrap { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+.ct { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 1rem; }
+label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; margin-top: 10px; }
+input[type=text], input[type=date], select, textarea {
+  width: 100%; font-size: 13px; padding: 6px 9px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--input-bg); color: var(--text); font-family: var(--sans);
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: #888; }
+.sec { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 14px 0 5px; }
+.tbl-scroll { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.tbl th { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--mid); padding: 5px 3px; text-align: center; border: 1px solid var(--border); }
+.tbl td { padding: 2px; border: 1px solid var(--border); text-align: center; vertical-align: middle; }
+.tbl td.rl { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--mid); padding: 4px 6px; text-align: right; white-space: nowrap; width: 34px; }
+.tbl td select { border: none; background: transparent; font-size: 11px; padding: 2px 0; width: 100%; color: var(--text); text-align: center; }
+.tbl td select:focus { outline: none; background: #e8f0fe; border-radius: 2px; }
+textarea.notes { height: 48px; resize: vertical; font-size: 12px; }
+.btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+button { font-size: 13px; padding: 7px 15px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); cursor: pointer; font-family: var(--sans); font-weight: 500; }
+button:hover { background: #e8e8e4; }
+button.primary { background: var(--text); color: #fff; border-color: var(--text); }
+button.primary:hover { background: #333; }
+.preview-box { font-family: var(--mono); font-size: 11px; line-height: 1.65; white-space: pre; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; min-height: 360px; color: var(--text); overflow-x: auto; }
+.notice { font-size: 12px; color: #2a7a2a; margin-top: 6px; min-height: 16px; }
+.footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 1.25rem; }
+</style>
+</head>
+<body>
+
+<p class="page-title">Shift Report Generator</p>
+
+<div class="wrap">
+<div class="card">
+  <div class="ct">Shift details</div>
+
+  <label>Date</label>
+  <input type="date" id="inp-date">
+
+  <label>Shift</label>
+  <select id="inp-shift" onchange="updateSectionLabel()">
+    <option value="A">Shift A  (06:00 to 14:00)</option>
+    <option value="B">Shift B  (14:00 to 22:00)</option>
+    <option value="C">Shift C  (22:00 to 06:00)</option>
+    <option value="D">Day Summary</option>
+  </select>
+
+  <label>Supervisor</label>
+  <input type="text" id="inp-sup" placeholder="Name">
+
+  <div class="sec" id="summary-label">Shift Summary</div>
+  <div class="tbl-scroll">
+  <table class="tbl" style="min-width:430px;" id="post-table">
+    <thead>
+      <tr id="tbl-header">
+        <th style="width:34px;">PN</th>
+        <th>1</th><th>2</th><th>3</th><th>4</th>
+        <th>5</th><th>6</th><th>7</th><th>8</th>
+      </tr>
+    </thead>
+    <tbody id="tbl-body"></tbody>
+  </table>
+  </div>
+
+  <div class="sec">Cost drivers</div>
+  <div class="tbl-scroll" id="cd-wrap"></div>
+
+  <label style="margin-top:14px;">Inventory</label>
+  <textarea class="notes" id="inp-inv" placeholder="Notes..."></textarea>
+  <label>Dispatch</label>
+  <textarea class="notes" id="inp-disp" placeholder="Notes..."></textarea>
+  <label>Breakdown</label>
+  <textarea class="notes" id="inp-break" placeholder="Notes..."></textarea>
+
+  <div class="btn-row">
+    <button class="primary" onclick="generate()">Generate message</button>
+    <button onclick="clearAll()">Clear</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="ct">WhatsApp preview</div>
+  <div class="preview-box" id="preview">Fill in the form and click "Generate message"</div>
+  <div class="btn-row">
+    <button class="primary" onclick="copyMsg()">Copy to clipboard</button>
+  </div>
+  <div class="notice" id="notice"></div>
+</div>
+</div>
+
+<div class="footer">Shift Report Generator &nbsp;·&nbsp; Paste copied message directly into WhatsApp</div>
+
+<script>
+const PH_OPTS = [
+  {v:"—",  l:"—"},
+  {v:"hc", l:"Hopper Charging"},
+  {v:"m",  l:"Melting"},
+  {v:"n",  l:"Necking"},
+  {v:"c",  l:"Crowning"},
+  {v:"b",  l:"Body"},
+  {v:"l",  l:"LOS"},
+  {v:"t",  l:"Tail"},
+  {v:"hv", l:"Harvesting"},
+  {v:"s",  l:"Shutdown"}
+];
+
+function makeSelect(id, opts, onchangeFn) {
+  let s = document.createElement("select");
+  s.id = id;
+  opts.forEach(o => s.appendChild(new Option(o.l !== undefined ? o.l : o, o.v !== undefined ? o.v : o)));
+  if (onchangeFn) s.onchange = onchangeFn;
+  return s;
+}
+
+function numOpts(max) {
+  return Array.from({length: max + 1}, (_, i) => ({v: i, l: i}));
+}
+
+// Build table body
+function buildTable() {
+  let tbody = document.getElementById("tbl-body");
+  tbody.innerHTML = "";
+
+  // Ph row
+  let phRow = document.createElement("tr");
+  let phLabel = document.createElement("td"); phLabel.className = "rl"; phLabel.textContent = "Ph";
+  phRow.appendChild(phLabel);
+  for (let i = 1; i <= 8; i++) {
+    let td = document.createElement("td");
+    td.appendChild(makeSelect("ph" + i, PH_OPTS));
+    phRow.appendChild(td);
+  }
+  tbody.appendChild(phRow);
+
+  // FP row — whole numbers 0 to 20
+  let fpRow = document.createElement("tr");
+  let fpLabel = document.createElement("td"); fpLabel.className = "rl"; fpLabel.textContent = "FS";
+  fpRow.appendChild(fpLabel);
+  for (let i = 1; i <= 8; i++) {
+    let td = document.createElement("td");
+    td.appendChild(makeSelect("fp" + i, numOpts(20), syncCD));
+    fpRow.appendChild(td);
+  }
+  tbody.appendChild(fpRow);
+
+  // LP row — whole numbers 0 to 50
+  let lpRow = document.createElement("tr");
+  let lpLabel = document.createElement("td"); lpLabel.className = "rl"; lpLabel.textContent = "LOS";
+  lpRow.appendChild(lpLabel);
+  for (let i = 1; i <= 8; i++) {
+    let td = document.createElement("td");
+    td.appendChild(makeSelect("lp" + i, numOpts(50)));
+    lpRow.appendChild(td);
+  }
+  tbody.appendChild(lpRow);
+}
+
+function updateSectionLabel() {
+  let v = document.getElementById("inp-shift").value;
+  document.getElementById("summary-label").textContent =
+    v === "D" ? "Day Summary" : "Shift Summary";
+}
+
+function getActive() {
+  let a = [];
+  for (let i = 1; i <= 8; i++) {
+    let val = parseInt(document.getElementById("fp" + i).value) || 0;
+    if (val >= 1) a.push(i);
+  }
+  return a;
+}
+
+function syncCD() {
+  let active = getActive();
+  let wrap = document.getElementById("cd-wrap");
+  if (!active.length) { wrap.innerHTML = ""; return; }
+
+  let hdrCells = active.map(n => `<th>PN-${n}</th>`).join("");
+  let mkRow = (lbl, pfx) => {
+    let cells = active.map(n =>
+      `<td><select id="${pfx}${n}">${numOpts(9999).slice(0,201).map(o=>`<option value="${o.v}">${o.l}</option>`).join("")}</select></td>`
+    ).join("");
+    return `<tr><td class="rl">${lbl}</td>${cells}</tr>`;
+  };
+
+  // For Len/Ar/Pow use text input for flexibility
+  let mkTxt = (lbl, pfx) => {
+    let cells = active.map(n =>
+      `<td><select id="${pfx}${n}">${Array.from({length:10001},(_,i)=>`<option value="${i}">${i}</option>`).join("")}</select></td>`
+    ).join("");
+    return `<tr><td class="rl">${lbl}</td>${cells}</tr>`;
+  };
+
+  // Use text inputs for cost driver values (they can be any number)
+  let mkInput = (lbl, pfx) => {
+    let cells = active.map(n =>
+      `<td><input type="text" id="${pfx}${n}" placeholder="0" style="border:none;background:transparent;text-align:center;font-size:11px;padding:2px;width:100%;color:var(--text);font-family:var(--mono);"></td>`
+    ).join("");
+    return `<tr><td class="rl">${lbl}</td>${cells}</tr>`;
+  };
+
+  wrap.innerHTML = `<table class="tbl"><thead><tr>
+    <th style="width:34px;"></th>${hdrCells}
+  </tr></thead><tbody>
+    ${mkInput("Len(mm)","cd-len-")}
+    ${mkInput("Ar(slpm)","cd-ar-")}
+    ${mkInput("Pow(MWh)","cd-pow-")}
+  </tbody></table>`;
+}
+
+// ── message helpers ──────────────────────────────────────────
+function fc(val, w) {
+  val = String(val);
+  if (val.length >= w) return val.substring(0, w);
+  let sp = w - val.length, l = Math.floor(sp / 2), r = sp - l;
+  return " ".repeat(l) + val + " ".repeat(r);
+}
+
+function mkRow(lbl, cells, w) {
+  return lbl + "|" + cells.map(c => fc(c, w)).join("|") + "|";
+}
+
+// ── generate ────────────────────────────────────────────────
+function generate() {
+  let dateRaw = document.getElementById("inp-date").value;
+  let ds = "—";
+  if (dateRaw) {
+    let d = new Date(dateRaw);
+    ds = d.toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"});
+  }
+  let sv = document.getElementById("inp-shift").value;
+  let shiftMap = {
+    A: "A  |  06:00 - 14:00",
+    B: "B  |  14:00 - 22:00",
+    C: "C  |  22:00 - 06:00",
+    D: "Day Summary"
+  };
+  let sectionHdr = sv === "D" ? "DAY SUMMARY" : "SHIFT SUMMARY";
+
+  let sup = document.getElementById("inp-sup").value.trim() || "—";
+
+  let phs = [], fps = [], lps = [];
+  for (let i = 1; i <= 8; i++) {
+    phs.push(document.getElementById("ph" + i).value);
+    fps.push(document.getElementById("fp" + i).value);
+    lps.push(document.getElementById("lp" + i).value);
+  }
+
+  const W = 4;
+  const PAD = 9;
+  let hdr = "PN       |" + [1,2,3,4,5,6,7,8].map(n => fc(n, W)).join("|") + "|";
+  let phR = mkRow("Ph       ", phs, W);
+  let fpR = mkRow("FS       ", fps, W);
+  let lpR = mkRow("LOS      ", lps, W);
+
+  let active = getActive();
+  let cdBlock = "";
+  if (active.length) {
+    const CW = 6;
+    let cdH  = "         |" + active.map(n => fc("PN-"+n, CW)).join("|") + "|";
+    let lens = active.map(n => { let e = document.getElementById("cd-len-"+n); return e ? e.value.trim()||"0" : "0"; });
+    let ars  = active.map(n => { let e = document.getElementById("cd-ar-"+n);  return e ? e.value.trim()||"0" : "0"; });
+    let pows = active.map(n => { let e = document.getElementById("cd-pow-"+n); return e ? e.value.trim()||"0" : "0"; });
+    cdBlock = "\nCOST DRIVERS\n"
+      + cdH + "\n"
+      + mkRow("Len(mm)  ", lens, CW) + "\n"
+      + mkRow("Ar(slpm) ", ars,  CW) + "\n"
+      + mkRow("Pow(MWh) ", pows, CW);
+  }
+
+  let inv  = document.getElementById("inp-inv").value.trim()   || "—";
+  let disp = document.getElementById("inp-disp").value.trim()  || "—";
+  let brk  = document.getElementById("inp-break").value.trim() || "—";
+
+  let now = new Date();
+  let gt = now.toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit", hour12:true});
+  let gd = now.toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"});
+
+  let msg =
+`SHIFT REPORT
+━━━━━━━━━━━━━━━━━━━━━
+Date       : ${ds}
+Shift      : ${shiftMap[sv]}
+Supervisor : ${sup}
+
+${sectionHdr}
+${hdr}
+${phR}
+${fpR}
+${lpR}${cdBlock}
+
+Inventory  : ${inv}
+Dispatch   : ${disp}
+Breakdown  : ${brk}
+━━━━━━━━━━━━━━━━━━━━━
+${gd}, ${gt}  |  ${sup}`;
+
+  document.getElementById("preview").textContent = msg;
+}
+
+function copyMsg() {
+  let txt = document.getElementById("preview").textContent;
+  if (txt.startsWith("Fill")) return;
+  navigator.clipboard.writeText(txt).then(() => notify("Copied — paste into WhatsApp."));
+}
+
+function notify(msg) {
+  let el = document.getElementById("notice");
+  el.textContent = msg;
+  setTimeout(() => el.textContent = "", 3000);
+}
+
+function clearAll() {
+  ["inp-date","inp-sup","inp-inv","inp-disp","inp-break"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("inp-shift").value = "A";
+  updateSectionLabel();
+  for (let i = 1; i <= 8; i++) {
+    document.getElementById("ph" + i).value = "—";
+    document.getElementById("fp" + i).value = "0";
+    document.getElementById("lp" + i).value = "0";
+  }
+  syncCD();
+  document.getElementById("preview").textContent = "Fill in the form and click \"Generate message\"";
+  document.getElementById("notice").textContent = "";
+}
+
+// ── init ─────────────────────────────────────────────────────
+buildTable();
+document.getElementById("inp-date").value = new Date().toISOString().split("T")[0];
+syncCD();
+</script>
+</body>
+</html>
