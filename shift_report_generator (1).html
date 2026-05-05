@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Shift Report Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f4f4f2;
+    --surface: #ffffff;
+    --border: #d8d6ce;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --accent: #1a1a18;
+    --input-bg: #f9f9f7;
+    --ph-bg: #efefec;
+    --mono: 'Courier New', Courier, monospace;
+    --sans: 'Segoe UI', system-ui, sans-serif;
+    --radius: 10px;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding: 1.5rem 1rem; }
+  h1 { font-size: 16px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.25rem; }
+  .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; max-width: 900px; margin: 0 auto; }
+  @media(max-width: 640px){ .wrap { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 1rem; }
+  label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; margin-top: 10px; }
+  input[type=text], input[type=date], select, textarea {
+    width: 100%; font-size: 13px; padding: 7px 10px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--input-bg); color: var(--text); font-family: var(--sans);
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #b5b5b0; border-color: transparent; }
+  .sec { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 14px 0 5px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tbl th { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--ph-bg); padding: 5px 6px; text-align: center; border: 1px solid var(--border); }
+  .tbl td { padding: 3px 4px; border: 1px solid var(--border); text-align: center; }
+  .tbl td.rl { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--ph-bg); padding: 4px 8px; text-align: right; white-space: nowrap; }
+  .tbl td.ph { font-size: 11px; color: var(--muted); background: var(--ph-bg); }
+  .tbl td input { border: none; background: transparent; text-align: center; font-size: 12px; padding: 2px; width: 100%; color: var(--text); font-family: var(--sans); }
+  .tbl td input:focus { outline: none; background: #e8f0fe; border-radius: 3px; }
+  textarea.notes { height: 56px; resize: vertical; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  button {
+    font-size: 13px; padding: 8px 16px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--input-bg);
+    color: var(--text); cursor: pointer; font-family: var(--sans); font-weight: 500;
+    transition: background .15s;
+  }
+  button:hover { background: #e8e8e4; }
+  button.primary { background: var(--text); color: #fff; border-color: var(--text); }
+  button.primary:hover { background: #333; }
+  .preview-box {
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.7;
+    white-space: pre-wrap; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; min-height: 360px; color: var(--text); word-break: break-word;
+  }
+  .copied { font-size: 12px; color: #2a7a2a; margin-top: 6px; height: 16px; }
+  .footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+<div style="max-width:900px;margin:0 auto;">
+  <h1>Daily Shift Report Generator</h1>
+  <div class="wrap">
+    <div class="card">
+      <div class="card-title">Shift details</div>
+
+      <label>Date</label>
+      <input type="date" id="inp-date">
+      <label>Shift</label>
+      <select id="inp-shift"><option>A</option><option>B</option><option>C</option></select>
+      <label>Supervisor</label>
+      <input type="text" id="inp-sup" placeholder="Name">
+
+      <div class="sec">Post data — PN 1 to 8</div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:38px;"></th>
+            <th>1</th><th>2</th><th>3</th><th>4</th>
+            <th>5</th><th>6</th><th>7</th><th>8</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rl">Ph</td>
+            <td class="ph">hc</td><td class="ph">m</td><td class="ph">c</td><td class="ph">b</td>
+            <td class="ph">l</td><td class="ph">t</td><td class="ph">hv</td><td class="ph">s</td>
+          </tr>
+          <tr>
+            <td class="rl">FP</td>
+            <td><input id="fp1" value="0"></td><td><input id="fp2" value="0"></td>
+            <td><input id="fp3" value="0"></td><td><input id="fp4" value="0"></td>
+            <td><input id="fp5" value="0"></td><td><input id="fp6" value="1"></td>
+            <td><input id="fp7" value="1"></td><td><input id="fp8" value="1"></td>
+          </tr>
+          <tr>
+            <td class="rl">LP</td>
+            <td><input id="lp1" value="2"></td><td><input id="lp2" value="3"></td>
+            <td><input id="lp3" value="0"></td><td><input id="lp4" value="1"></td>
+            <td><input id="lp5" value="3"></td><td><input id="lp6" value="4"></td>
+            <td><input id="lp7" value="5"></td><td><input id="lp8" value="1"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sec">Cost drivers — PN 5, 6, 8</div>
+      <table class="tbl">
+        <thead>
+          <tr><th style="width:42px;"></th><th>PN 5</th><th>PN 6</th><th>PN 8</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="rl">Len</td><td><input id="len5" value="3500"></td><td><input id="len6" value="2800"></td><td><input id="len8" value="3000"></td></tr>
+          <tr><td class="rl">Ar</td><td><input id="ar5" placeholder="—"></td><td><input id="ar6" placeholder="—"></td><td><input id="ar8" placeholder="—"></td></tr>
+          <tr><td class="rl">Pow</td><td><input id="pow5" placeholder="—"></td><td><input id="pow6" placeholder="—"></td><td><input id="pow8" placeholder="—"></td></tr>
+        </tbody>
+      </table>
+
+      <label style="margin-top:14px;">Inventory</label>
+      <textarea class="notes" id="inp-inv" placeholder="Enter inventory notes..."></textarea>
+      <label>Dispatch</label>
+      <textarea class="notes" id="inp-disp" placeholder="Enter dispatch notes..."></textarea>
+      <label>Breakdown</label>
+      <textarea class="notes" id="inp-break" placeholder="Enter breakdown notes..."></textarea>
+
+      <div class="btn-row">
+        <button class="primary" onclick="generate()">Generate message</button>
+        <button onclick="clearAll()">Clear all</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">WhatsApp message preview</div>
+      <div class="preview-box" id="preview">Fill in the form and click "Generate message" →</div>
+      <div class="btn-row">
+        <button class="primary" onclick="copyMsg()">Copy to clipboard</button>
+      </div>
+      <div class="copied" id="copied-msg"></div>
+    </div>
+  </div>
+  <div class="footer">Daily Shift Report Generator &nbsp;·&nbsp; Copy message and paste directly into WhatsApp</div>
+</div>
+
+<script>
+const PH = ['hc','m','c','b','l','t','hv','s'];
+
+function g(id){ return document.getElementById(id).value.trim() || '—'; }
+
+function fixedCol(val, w){
+  val = String(val);
+  if(val.length >= w) return val.substring(0, w);
+  let sp = w - val.length;
+  let l = Math.floor(sp / 2);
+  let r = sp - l;
+  return ' '.repeat(l) + val + ' '.repeat(r);
+}
+
+function buildRow(label, cells, w){
+  return label.padEnd(4) + '|' + cells.map(c => fixedCol(c, w)).join('|') + '|';
+}
+
+function generate(){
+  let dateRaw = document.getElementById('inp-date').value;
+  let dateStr = '—';
+  if(dateRaw){
+    let d = new Date(dateRaw);
+    dateStr = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+  }
+  let shift = document.getElementById('inp-shift').value;
+  let sup   = document.getElementById('inp-sup').value.trim() || '—';
+
+  let fps = [], lps = [];
+  for(let i = 1; i <= 8; i++){
+    fps.push(document.getElementById('fp'+i).value || '0');
+    lps.push(document.getElementById('lp'+i).value || '0');
+  }
+
+  let lens = [g('len5'), g('len6'), g('len8')];
+  let ars  = [g('ar5'),  g('ar6'),  g('ar8')];
+  let pows = [g('pow5'), g('pow6'), g('pow8')];
+  let inv  = g('inp-inv'), disp = g('inp-disp'), brk = g('inp-break');
+
+  const W  = 4;
+  const CW = 6;
+
+  let pnRow = 'PN  |' + [1,2,3,4,5,6,7,8].map(n => fixedCol(n, W)).join('|') + '|';
+  let phRow = buildRow('Ph  ', PH,  W);
+  let fpRow = buildRow('FP  ', fps, W);
+  let lpRow = buildRow('LP  ', lps, W);
+
+  let cdPn  = '    |' + ['PN 5','PN 6','PN 8'].map(v => fixedCol(v, CW)).join('|') + '|';
+  let cdLen = buildRow('Len ', lens, CW);
+  let cdAr  = buildRow('Ar  ', ars,  CW);
+  let cdPow = buildRow('Pow ', pows, CW);
+
+  let msg =
+`📋 *DAILY SHIFT REPORT*
+━━━━━━━━━━━━━━━━━━━━━
+📅 Date  : ${dateStr}
+🔄 Shift : ${shift}
+👷 Supvr : ${sup}
+
+*─── POST STATUS ───*
+\`${pnRow}\`
+\`${phRow}\`
+\`${fpRow}\`
+\`${lpRow}\`
+
+*─── COST DRIVERS ───*
+\`${cdPn}\`
+\`${cdLen}\`
+\`${cdAr}\`
+\`${cdPow}\`
+
+📦 *Inventory*
+${inv}
+
+🚚 *Dispatch*
+${disp}
+
+🔧 *Breakdown*
+${brk}
+━━━━━━━━━━━━━━━━━━━━━`;
+
+  document.getElementById('preview').textContent = msg;
+}
+
+function copyMsg(){
+  let txt = document.getElementById('preview').textContent;
+  if(txt.startsWith('Fill')) return;
+  navigator.clipboard.writeText(txt).then(() => {
+    let el = document.getElementById('copied-msg');
+    el.textContent = '✓ Copied! Paste directly into WhatsApp.';
+    setTimeout(() => el.textContent = '', 3000);
+  }).catch(() => {
+    let el = document.getElementById('copied-msg');
+    el.textContent = 'Select the text above and copy manually.';
+  });
+}
+
+function clearAll(){
+  ['inp-date','inp-sup','inp-inv','inp-disp','inp-break']
+    .forEach(id => document.getElementById(id).value = '');
+  for(let i = 1; i <= 8; i++){
+    document.getElementById('fp'+i).value = '';
+    document.getElementById('lp'+i).value = '';
+  }
+  ['len5','len6','len8','ar5','ar6','ar8','pow5','pow6','pow8']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('preview').textContent = 'Fill in the form and click "Generate message" →';
+  document.getElementById('copied-msg').textContent = '';
+}
+
+document.getElementById('inp-date').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
